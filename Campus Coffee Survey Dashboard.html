@@ -1,0 +1,257 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Campus Coffee Survey Dashboard</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+/* Layout: toolbar on top, filter pane left, grid of worksheets right, sheet tabs at the bottom (Tableau workbook anatomy). Narrow screens stack the pane above the sheets. */
+:root{
+  --bg:#e9ecef; --panel:#ffffff; --pane:#f4f5f7; --ink:#1f2933; --ink2:#52606d; --muted:#8a96a3;
+  --line:#d5dae0; --track:#edf0f3; --bar:#4e79a7; --bar2:#a0cbe8; --bar3:#bab0ac; --hot:#f28e2b; --tabbar:#dfe3e8;
+  --bar-ink:#ffffff;
+  --font:'Source Sans 3','Segoe UI',system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1317; --panel:#1a2026; --pane:#151b20; --ink:#e8edf2; --ink2:#aab6c2; --muted:#7f8c99;
+  --line:#2b343c; --track:#262f37; --bar:#6a9bcb; --bar2:#34506c; --bar3:#6f6a67; --hot:#f5a54f; --tabbar:#11161a;
+  --bar-ink:#0f1317; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1317; --panel:#1a2026; --pane:#151b20; --ink:#e8edf2; --ink2:#aab6c2; --muted:#7f8c99;
+  --line:#2b343c; --track:#262f37; --bar:#6a9bcb; --bar2:#34506c; --bar3:#6f6a67; --hot:#f5a54f; --tabbar:#11161a;
+  --bar-ink:#0f1317; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:14px;line-height:1.35;
+  padding-block:0;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+button{font:inherit;color:inherit}
+.app{max-width:1360px;margin:0 auto;display:flex;flex-direction:column;gap:12px;padding-block:12px}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;background:var(--panel);border:1px solid var(--line);padding:10px 14px}
+.toolbar h1{margin:0;font-size:20px;font-weight:700;letter-spacing:.1px}
+.toolbar .sub{color:var(--muted);font-size:12.5px}
+.toolbar .sp{flex:1}
+.btn{background:var(--panel);border:1px solid var(--line);padding:5px 12px;border-radius:3px;cursor:pointer;font-size:13px}
+.btn:hover{border-color:var(--bar)}
+.btn:focus-visible,.row:focus-visible,.fi:focus-within,.tab:focus-visible,.slice:focus-visible{outline:2px solid var(--hot);outline-offset:1px}
+.btn.primary{background:var(--bar);border-color:var(--bar);color:var(--bar-ink);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-height:28px}
+.chip{display:inline-flex;gap:6px;align-items:center;background:var(--panel);border:1px solid var(--bar);color:var(--ink);padding:2px 4px 2px 9px;font-size:12.5px;border-radius:12px;cursor:pointer}
+.chip b{font-weight:600}.chip span.x{width:16px;height:16px;line-height:15px;text-align:center;border-radius:8px;background:var(--track);color:var(--ink2)}
+.hint{color:var(--muted);font-size:12.5px}
+.body{display:grid;grid-template-columns:230px minmax(0,1fr);gap:12px;align-items:start}
+.pane{background:var(--pane);border:1px solid var(--line);padding:12px;display:flex;flex-direction:column;gap:14px;position:sticky;top:8px;max-height:calc(100vh - 16px);overflow:auto}
+.pane h3{margin:0 0 6px;font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--ink2)}
+.fi{display:flex;align-items:center;gap:8px;padding:3px 2px;cursor:pointer;font-size:13.5px}
+.fi input{accent-color:var(--bar);width:15px;height:15px;margin:0}
+.fi .n{margin-left:auto;color:var(--muted);font-variant-numeric:tabular-nums;font-size:12px}
+.fi.off{color:var(--muted)}
+.toggle-pane{display:none}
+.sheets{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:12px}
+.sheet{background:var(--panel);border:1px solid var(--line);min-width:0;display:flex;flex-direction:column}
+.sheet>header{padding:7px 12px;border-bottom:1px solid var(--line);background:var(--pane);display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.sheet>header h2{margin:0;font-size:14px;font-weight:700}
+.sheet>header span{color:var(--muted);font-size:12px;text-align:right}
+.sheet .in{padding:12px;display:flex;flex-direction:column;gap:7px;min-width:0;flex:1}
+.s12{grid-column:span 12}.s8{grid-column:span 8}.s6{grid-column:span 6}.s4{grid-column:span 4}.s3{grid-column:span 3}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;grid-column:span 12}
+.kpi{background:var(--panel);border:1px solid var(--line);padding:10px 14px;min-width:0}
+.kpi .l{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--ink2)}
+.kpi .v{font-size:32px;font-weight:700;line-height:1.15;color:var(--bar);font-variant-numeric:tabular-nums}
+.kpi .d{font-size:12px;color:var(--muted)}
+.row{display:grid;grid-template-columns:minmax(80px,40%) 1fr 62px;gap:8px;align-items:center;text-align:left;background:none;border:0;padding:2px 0;cursor:pointer;width:100%}
+.row .name{font-size:13px;color:var(--ink2);min-width:0;overflow-wrap:anywhere}
+.row .track{height:16px;background:var(--track);position:relative}
+.row .fill{height:100%;background:var(--bar);transition:width .35s ease,opacity .2s}
+.row .val{font-size:12.5px;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.row .val i{font-style:normal;color:var(--muted);margin-left:4px}
+.row.dim .fill{opacity:.28}
+.row.dim .name{color:var(--muted)}
+.row.sel .name{color:var(--ink);font-weight:600}
+.row.sel .fill{background:var(--hot)}
+.row:hover .track{outline:1px solid var(--ink2)}
+.stack{display:flex;height:20px;gap:1px;background:var(--panel)}
+.seg{display:flex;align-items:center;justify-content:center;font-size:11.5px;font-weight:600;color:var(--bar-ink);transition:flex .3s;min-width:0;overflow:hidden}
+.seg.k0{background:var(--bar)}.seg.k1{background:var(--bar2);color:#1f2933}.seg.k2{background:var(--bar3);color:#1f2933}
+:root[data-theme="dark"] .seg.k1,:root[data-theme="dark"] .seg.k2{color:#e8edf2}
+.srow{grid-template-columns:minmax(80px,32%) 1fr 36px}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;font-size:12px;color:var(--ink2)}
+.legend i{display:inline-block;width:10px;height:10px;margin-right:5px;vertical-align:-1px}
+.donut{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:center}
+.donut svg{width:min(190px,100%);height:auto;flex:none}
+.slice{cursor:pointer;fill:none;transition:opacity .2s}
+.slice.dim{opacity:.3}
+.dl{display:flex;flex-direction:column;gap:3px;min-width:150px;flex:1}
+.dl button{display:grid;grid-template-columns:12px 1fr auto;gap:8px;align-items:center;background:none;border:0;padding:2px 0;cursor:pointer;text-align:left;font-size:13px}
+.dl button.dim{opacity:.45}.dl button.sel{font-weight:700}
+.dl i{width:12px;height:12px;display:block}
+.empty{color:var(--muted);font-size:13px;padding:8px 0}
+.tablewrap{overflow-x:auto;max-width:100%}
+table{border-collapse:collapse;width:100%;font-size:12.5px;white-space:nowrap}
+th{position:sticky;top:0;background:var(--pane);text-align:left;padding:6px 10px;border-bottom:1px solid var(--line);font-weight:700}
+td{padding:5px 10px;border-bottom:1px solid var(--track)}
+tbody tr:hover{background:var(--track)}
+.tabs{display:flex;gap:2px;background:var(--tabbar);border:1px solid var(--line);padding:4px 6px 0}
+.tab{background:var(--pane);border:1px solid var(--line);border-bottom:0;padding:6px 16px;cursor:pointer;font-size:13px;color:var(--ink2)}
+.tab[aria-selected="true"]{background:var(--panel);color:var(--ink);font-weight:700;border-top:3px solid var(--bar);padding-top:4px}
+.tip{position:fixed;z-index:30;pointer-events:none;background:#1f2933;color:#fff;font-size:12.5px;padding:6px 10px;border-radius:3px;max-width:240px;opacity:0;transition:opacity .08s;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.tip b{display:block;font-weight:700}
+footer{color:var(--muted);font-size:12px}
+@media (max-width:1000px){.s8,.s6,.s4{grid-column:span 12}.s3{grid-column:span 6}}
+@media (max-width:820px){
+  .body{grid-template-columns:minmax(0,1fr)}
+  .pane{position:static;max-height:none}
+  .pane[data-open="false"]{display:none}
+  .toggle-pane{display:inline-block}
+}
+@media (max-width:520px){
+  .s3{grid-column:span 12}
+  .row{grid-template-columns:1fr 62px;grid-template-areas:"n v" "t t"}
+  .row .name{grid-area:n}.row .val{grid-area:v}.row .track{grid-area:t}
+  .srow{grid-template-columns:1fr 36px;grid-template-areas:"n v" "t t"}
+}
+@media (prefers-reduced-motion:reduce){.fill,.seg,.slice{transition:none!important}}
+</style>
+
+<div class="app">
+  <div class="toolbar">
+    <h1>Campus Coffee Survey</h1>
+    <span class="sub" id="sub"></span>
+    <span class="sp"></span>
+    <button class="btn toggle-pane" id="tp" aria-expanded="false">Filters</button>
+    <button class="btn primary" id="reset">Reset all filters</button>
+  </div>
+  <div class="chips" id="chips" aria-live="polite"></div>
+
+  <div class="body">
+    <aside class="pane" id="pane" data-open="false" aria-label="Filters"></aside>
+
+    <main id="dash" class="sheets">
+      <div class="kpis" id="kpis"></div>
+
+      <section class="sheet s4"><header><h2>Would you use a vending machine?</h2><span id="h-use"></span></header><div class="in"><div class="donut" id="c-use"></div></div></section>
+      <section class="sheet s4"><header><h2>Queue wait time</h2><span id="h-wait"></span></header><div class="in" id="c-wait"></div></section>
+      <section class="sheet s4"><header><h2>Skipped coffee because of the queue</h2><span id="h-skip"></span></header><div class="in" id="c-skip"></div></section>
+
+      <section class="sheet s8"><header><h2>Skipping by queue wait time</h2><span>Share of students in each wait group</span></header><div class="in"><div class="legend" id="lg-ws"></div><div id="c-ws" style="display:flex;flex-direction:column;gap:7px"></div></div></section>
+      <section class="sheet s4"><header><h2>Preferred machine location</h2><span id="h-where"></span></header><div class="in" id="c-where"></div></section>
+
+      <section class="sheet s6"><header><h2>Concerns about a vending machine</h2><span>Multiple answers allowed</span></header><div class="in" id="c-conc"></div></section>
+      <section class="sheet s6"><header><h2>Beverages students want</h2><span>Multiple answers allowed</span></header><div class="in" id="c-bev"></div></section>
+
+      <section class="sheet s3"><header><h2>Top priority</h2></header><div class="in" id="c-matter"></div></section>
+      <section class="sheet s3"><header><h2>Spend per cup</h2></header><div class="in" id="c-spend"></div></section>
+      <section class="sheet s3"><header><h2>Buying frequency</h2></header><div class="in" id="c-freq"></div></section>
+      <section class="sheet s3"><header><h2>Year of study</h2></header><div class="in" id="c-year"></div></section>
+    </main>
+
+    <section class="sheet" id="data" hidden style="grid-column:2/-1;min-width:0">
+      <header><h2>Response data</h2><span id="h-data"></span></header>
+      <div class="in"><div class="tablewrap"><table id="tbl"></table></div></div>
+    </section>
+  </div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="t-dash" aria-selected="true">Dashboard</button>
+    <button class="tab" role="tab" id="t-data" aria-selected="false">Response data</button>
+  </div>
+  <footer>Click any bar, slice or legend item to filter every sheet. Click again to clear it. Names and emails are not included.</footer>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script>
+const ROWS=[{"id":1,"year":"2 Year","age":"21-23","drink":"Sometimes","freq":"Every day","wait":"More than 10 minutes","skip":"Frequently","spend":"₹16–₹20","use":"Definitely yes","where":"At each Floor","matter":"Fast service","bev":["Regular coffee","Tea"],"conc":["Long queues even at the machine"]},{"id":2,"year":"1 Year","age":"18-20","drink":"Rarely","freq":"Rarely or never","wait":"5–10 minutes","skip":"Frequently","spend":"₹16–₹20","use":"Probably yes","where":"Near the vending machine","matter":"Taste and quality","bev":["Milk coffee"],"conc":["Taste and quality","Hygiene"]},{"id":3,"year":"1 Year","age":"21-23","drink":"Rarely","freq":"Once a week","wait":"5–10 minutes","skip":"Sometimes","spend":"₹10–₹15","use":"Definitely yes","where":"At each Floor","matter":"Fast service","bev":["Tea"],"conc":["Price","Taste and quality","Hygiene"]},{"id":4,"year":"1 Year","age":"21-23","drink":"Never","freq":"Rarely or never","wait":"No waiting","skip":"Frequently","spend":"Below ₹10","use":"Definitely not","where":"At each Floor","matter":"Low price","bev":["Regular coffee","Strong coffee","Milk coffee","Black coffee","Tea"],"conc":["Price","Taste and quality","Hygiene","Machine reliability","Long queues even at the machine","No concern"]},{"id":5,"year":"1 Year","age":"18-20","drink":"Never","freq":"Rarely or never","wait":"No waiting","skip":"Never","spend":"Below ₹10","use":"Not sure","where":"Near the canteen","matter":"Fast service","bev":["Regular coffee"],"conc":["Price","Taste and quality","Machine reliability"]},{"id":6,"year":"1 Year","age":"21-23","drink":"Sometimes","freq":"2–3 times a week","wait":"5–10 minutes","skip":"Frequently","spend":"₹16–₹20","use":"Definitely yes","where":"Near the vending machine","matter":"Both are equally important","bev":["Regular coffee","Strong coffee","Milk coffee","Black coffee","Tea"],"conc":["Price","Taste and quality","Hygiene","Machine reliability","Long queues even at the machine","No concern"]},{"id":7,"year":"1 Year","age":"21-23","drink":"Daily","freq":"Every day","wait":"5–10 minutes","skip":"Frequently","spend":"₹16–₹20","use":"Definitely yes","where":"Near the vending machine","matter":"Fast service","bev":["Milk coffee","Black coffee","Tea"],"conc":["Taste and quality","Hygiene","Machine reliability"]},{"id":8,"year":"1 Year","age":"18-20","drink":"Daily","freq":"Every day","wait":"5–10 minutes","skip":"Frequently","spend":"₹10–₹15","use":"Definitely yes","where":"At each Floor","matter":"Taste and quality","bev":["Regular coffee","Strong coffee","Milk coffee","Black coffee"],"conc":["Taste and quality","Long queues even at the machine"]},{"id":9,"year":"1 Year","age":"21-23","drink":"Rarely","freq":"Rarely or never","wait":"5–10 minutes","skip":"Never","spend":"₹16–₹20","use":"Probably yes","where":"Near the vending machine","matter":"Taste and quality","bev":["Regular coffee","Strong coffee"],"conc":["Taste and quality","Hygiene","Machine reliability"]},{"id":10,"year":"1 Year","age":"18-20","drink":"Daily","freq":"Every day","wait":"5–10 minutes","skip":"Sometimes","spend":"₹10–₹15","use":"Definitely yes","where":"Near the vending machine","matter":"Taste and quality","bev":["Strong coffee","Milk coffee"],"conc":["Taste and quality"]},{"id":11,"year":"1 Year","age":"18-20","drink":"Daily","freq":"Every day","wait":"5–10 minutes","skip":"Frequently","spend":"₹10–₹15","use":"Definitely yes","where":"At each Floor","matter":"Taste and quality","bev":["Regular coffee","Strong coffee","Milk coffee","Black coffee"],"conc":["Price","Taste and quality","Hygiene","Machine reliability","Long queues even at the machine"]},{"id":12,"year":"1 Year","age":"21-23","drink":"Daily","freq":"Every day","wait":"5–10 minutes","skip":"Sometimes","spend":"₹10–₹15","use":"Probably yes","where":"Near the vending machine","matter":"Taste and quality","bev":["Strong coffee","Milk coffee"],"conc":["Price","Taste and quality","Hygiene","Machine reliability","Long queues even at the machine"]},{"id":13,"year":"1 Year","age":"23 Above","drink":"Sometimes","freq":"Rarely or never","wait":"Less than 5 minutes","skip":"Sometimes","spend":"₹10–₹15","use":"Definitely yes","where":"Near the vending machine","matter":"Taste and quality","bev":["Regular coffee","Milk coffee","Black coffee","Tea"],"conc":["Price","Taste and quality","Hygiene","Long queues even at the machine"]},{"id":14,"year":"1 Year","age":"21-23","drink":"Sometimes","freq":"2–3 times a week","wait":"5–10 minutes","skip":"Sometimes","spend":"₹10–₹15","use":"Definitely yes","where":"At each Floor","matter":"Both are equally important","bev":["Regular coffee","Milk coffee","Tea"],"conc":["Price","Taste and quality","Hygiene","Long queues even at the machine"]},{"id":15,"year":"1 Year","age":"21-23","drink":"Never","freq":"Rarely or never","wait":"More than 10 minutes","skip":"Never","spend":"Below ₹10","use":"Probably not","where":"Near the vending machine","matter":"Taste and quality","bev":["Regular coffee"],"conc":["Hygiene","Long queues even at the machine"]},{"id":16,"year":"1 Year","age":"21-23","drink":"Daily","freq":"Every day","wait":"5–10 minutes","skip":"Frequently","spend":"₹10–₹15","use":"Definitely yes","where":"At each Floor","matter":"Both are equally important","bev":["Regular coffee","Strong coffee","Milk coffee","Black coffee","Tea"],"conc":["Price","Taste and quality","Hygiene","Machine reliability","Long queues even at the machine"]},{"id":17,"year":"1 Year","age":"21-23","drink":"Daily","freq":"Every day","wait":"5–10 minutes","skip":"Frequently","spend":"₹10–₹15","use":"Probably yes","where":"At each Floor","matter":"Taste and quality","bev":["Strong coffee"],"conc":["Taste and quality"]},{"id":18,"year":"1 Year","age":"21-23","drink":"Sometimes","freq":"2–3 times a week","wait":"5–10 minutes","skip":"Sometimes","spend":"₹16–₹20","use":"Probably yes","where":"At each Floor","matter":"Low price","bev":["Regular coffee","Strong coffee"],"conc":["Price","Taste and quality","Hygiene","Machine reliability"]},{"id":19,"year":"1 Year","age":"21-23","drink":"Sometimes","freq":"2–3 times a week","wait":"More than 10 minutes","skip":"Frequently","spend":"₹16–₹20","use":"Definitely yes","where":"At each Floor","matter":"Fast service","bev":["Regular coffee","Strong coffee"],"conc":["Long queues even at the machine"]},{"id":20,"year":"3 Year","age":"23 Above","drink":"Rarely","freq":"Rarely or never","wait":"No waiting","skip":"Sometimes","spend":"Above ₹20","use":"Not sure","where":"Near the vending machine","matter":"Taste and quality","bev":["Strong coffee"],"conc":["Taste and quality","Hygiene"]},{"id":21,"year":"1 Year","age":"21-23","drink":"Never","freq":"Rarely or never","wait":"Less than 5 minutes","skip":"Sometimes","spend":"₹10–₹15","use":"Probably yes","where":"Near the canteen","matter":"Both are equally important","bev":["Strong coffee"],"conc":["Taste and quality","Hygiene"]},{"id":22,"year":"1 Year","age":"18-20","drink":"Daily","freq":"Every day","wait":"5–10 minutes","skip":"Sometimes","spend":"₹10–₹15","use":"Definitely yes","where":"At each Floor","matter":"Fast service","bev":["Regular coffee"],"conc":["Taste and quality"]},{"id":23,"year":"1 Year","age":"18-20","drink":"Daily","freq":"Every day","wait":"5–10 minutes","skip":"Frequently","spend":"₹10–₹15","use":"Definitely yes","where":"Near the vending machine","matter":"Taste and quality","bev":["Strong coffee"],"conc":["Price","Taste and quality","Hygiene"]},{"id":24,"year":"1 Year","age":"21-23","drink":"Daily","freq":"Every day","wait":"Less than 5 minutes","skip":"Sometimes","spend":"₹10–₹15","use":"Definitely yes","where":"At each Floor","matter":"Both are equally important","bev":["Regular coffee","Strong coffee"],"conc":["Taste and quality","Hygiene"]},{"id":25,"year":"1 Year","age":"21-23","drink":"Daily","freq":"Every day","wait":"5–10 minutes","skip":"Sometimes","spend":"₹10–₹15","use":"Definitely yes","where":"Near the vending machine","matter":"Both are equally important","bev":["Strong coffee"],"conc":["Long queues even at the machine"]},{"id":26,"year":"1 Year","age":"21-23","drink":"Sometimes","freq":"2–3 times a week","wait":"More than 10 minutes","skip":"Sometimes","spend":"₹10–₹15","use":"Definitely yes","where":"At each Floor","matter":"Both are equally important","bev":["Regular coffee","Strong coffee","Milk coffee","Black coffee","Tea"],"conc":["Price","Taste and quality","Hygiene","Machine reliability","Long queues even at the machine"]},{"id":27,"year":"1 Year","age":"21-23","drink":"Sometimes","freq":"Every day","wait":"5–10 minutes","skip":"Frequently","spend":"₹10–₹15","use":"Definitely yes","where":"Near the vending machine","matter":"Fast service","bev":["Regular coffee","Strong coffee","Milk coffee"],"conc":["Taste and quality","Hygiene"]},{"id":28,"year":"1 Year","age":"21-23","drink":"Sometimes","freq":"2–3 times a week","wait":"5–10 minutes","skip":"Sometimes","spend":"₹16–₹20","use":"Probably yes","where":"Near the canteen","matter":"Taste and quality","bev":["Milk coffee"],"conc":["Hygiene"]},{"id":29,"year":"2 Year","age":"21-23","drink":"Daily","freq":"Every day","wait":"More than 10 minutes","skip":"Frequently","spend":"₹10–₹15","use":"Definitely yes","where":"At each Floor","matter":"Low price","bev":["Regular coffee","Strong coffee","Milk coffee","Black coffee","Tea"],"conc":["Price","Taste and quality","Machine reliability","Long queues even at the machine","No concern"]},{"id":30,"year":"2 Year","age":"18-20","drink":"Sometimes","freq":"Every day","wait":"More than 10 minutes","skip":"Frequently","spend":"₹10–₹15","use":"Definitely yes","where":"At each Floor","matter":"Low price","bev":["Regular coffee","Strong coffee","Milk coffee","Black coffee","Tea"],"conc":["Price","Taste and quality","Hygiene","Machine reliability","Long queues even at the machine"]},{"id":31,"year":"1 Year","age":"18-20","drink":"Sometimes","freq":"Once a week","wait":"More than 10 minutes","skip":"Frequently","spend":"₹16–₹20","use":"Probably yes","where":"At each Floor","matter":"Fast service","bev":["Regular coffee","Strong coffee"],"conc":["Hygiene","Long queues even at the machine"]},{"id":32,"year":"1 Year","age":"21-23","drink":"Sometimes","freq":"2–3 times a week","wait":"5–10 minutes","skip":"Frequently","spend":"₹16–₹20","use":"Definitely yes","where":"At each Floor","matter":"Both are equally important","bev":["Regular coffee","Strong coffee"],"conc":["Price","Taste and quality"]},{"id":33,"year":"1 Year","age":"18-20","drink":"Sometimes","freq":"2–3 times a week","wait":"5–10 minutes","skip":"Sometimes","spend":"₹16–₹20","use":"Definitely yes","where":"At each Floor","matter":"Low price","bev":["Strong coffee","Milk coffee","Black coffee","Tea"],"conc":["Price","Taste and quality","Machine reliability","Long queues even at the machine"]},{"id":34,"year":"1 Year","age":"21-23","drink":"Sometimes","freq":"Every day","wait":"5–10 minutes","skip":"Frequently","spend":"₹16–₹20","use":"Definitely yes","where":"At each Floor","matter":"Low price","bev":["Regular coffee","Strong coffee","Milk coffee","Black coffee","Tea"],"conc":["Price","Taste and quality","Hygiene","Machine reliability","Long queues even at the machine"]},{"id":35,"year":"1 Year","age":"21-23","drink":"Daily","freq":"2–3 times a week","wait":"More than 10 minutes","skip":"Sometimes","spend":"₹10–₹15","use":"Probably yes","where":"Near the vending machine","matter":"Both are equally important","bev":["Regular coffee","Strong coffee"],"conc":["Machine reliability","Long queues even at the machine"]},{"id":36,"year":"2 Year","age":"23 Above","drink":"Sometimes","freq":"2–3 times a week","wait":"5–10 minutes","skip":"Sometimes","spend":"Below ₹10","use":"Definitely yes","where":"Near the vending machine","matter":"Low price","bev":["Regular coffee","Strong coffee","Black coffee","Tea"],"conc":["Price","Taste and quality","Hygiene","Long queues even at the machine"]},{"id":37,"year":"2 Year","age":"23 Above","drink":"Sometimes","freq":"Every day","wait":"No waiting","skip":"Never","spend":"Below ₹10","use":"Definitely yes","where":"At each Floor","matter":"Low price","bev":["Regular coffee","Strong coffee","Milk coffee","Black coffee","Tea"],"conc":["Price","Taste and quality","Hygiene","Long queues even at the machine"]},{"id":38,"year":"1 Year","age":"18-20","drink":"Rarely","freq":"Rarely or never","wait":"More than 10 minutes","skip":"Sometimes","spend":"₹10–₹15","use":"Probably yes","where":"Near the vending machine","matter":"Both are equally important","bev":["Regular coffee","Tea"],"conc":["Price","Taste and quality","Machine reliability"]},{"id":39,"year":"1 Year","age":"21-23","drink":"Sometimes","freq":"Once a week","wait":"More than 10 minutes","skip":"Frequently","spend":"₹10–₹15","use":"Definitely yes","where":"At each Floor","matter":"Both are equally important","bev":["Regular coffee","Strong coffee"],"conc":["Long queues even at the machine"]},{"id":40,"year":"1 Year","age":"21-23","drink":"Sometimes","freq":"2–3 times a week","wait":"5–10 minutes","skip":"Sometimes","spend":"₹10–₹15","use":"Definitely yes","where":"At each Floor","matter":"Both are equally important","bev":["Strong coffee"],"conc":["Long queues even at the machine"]},{"id":41,"year":"1 Year","age":"18-20","drink":"Daily","freq":"Every day","wait":"More than 10 minutes","skip":"Sometimes","spend":"₹10–₹15","use":"Definitely yes","where":"Near the vending machine","matter":"Taste and quality","bev":["Strong coffee","Black coffee"],"conc":["Price","Long queues even at the machine"]},{"id":42,"year":"4 Year","age":"21-23","drink":"Sometimes","freq":"2–3 times a week","wait":"Less than 5 minutes","skip":"Never","spend":"₹10–₹15","use":"Probably yes","where":"At each Floor","matter":"Taste and quality","bev":["Regular coffee","Milk coffee"],"conc":["Taste and quality"]},{"id":43,"year":"1 Year","age":"18-20","drink":"Sometimes","freq":"Every day","wait":"Less than 5 minutes","skip":"Sometimes","spend":"₹10–₹15","use":"Definitely yes","where":"At each Floor","matter":"Fast service","bev":["Strong coffee"],"conc":["Taste and quality"]}];
+const ORD={
+ year:["1 Year","2 Year","3 Year","4 Year"],
+ age:["18-20","21-23","23 Above"],
+ drink:["Daily","Sometimes","Rarely","Never"],
+ freq:["Every day","2–3 times a week","Once a week","Rarely or never"],
+ wait:["No waiting","Less than 5 minutes","5–10 minutes","More than 10 minutes"],
+ skip:["Frequently","Sometimes","Never"],
+ spend:["Below ₹10","₹10–₹15","₹16–₹20","Above ₹20"],
+ use:["Definitely yes","Probably yes","Not sure","Probably not","Definitely not"],
+ where:["At each Floor","Near the vending machine","Near the canteen"],
+ matter:["Taste and quality","Both are equally important","Fast service","Low price"],
+ bev:["Strong coffee","Regular coffee","Milk coffee","Tea","Black coffee"],
+ conc:["Taste and quality","Hygiene","Long queues even at the machine","Price","Machine reliability","No concern"]
+};
+const MULTI=new Set(['bev','conc']);
+const LABEL={year:'Year',age:'Age',drink:'Drinks coffee',freq:'Buys',wait:'Wait',skip:'Skipped',spend:'Spend',use:'Would use',where:'Location',matter:'Priority',bev:'Beverage',conc:'Concern'};
+const PANE=['year','age','wait','skip','spend','use'];
+const PANE_TITLE={year:'Year of study',age:'Age group',wait:'Queue wait time',skip:'Skipped coffee',spend:'Spend per cup',use:'Would use machine'};
+const F={}; // dim -> Set
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const hit=(r,d,s)=>MULTI.has(d)?r[d].some(v=>s.has(v)):s.has(r[d]);
+const rows=ex=>ROWS.filter(r=>Object.entries(F).every(([d,s])=>d===ex||s.size===0||hit(r,d,s)));
+const count=(rs,d)=>{const o={};ORD[d].forEach(k=>o[k]=0);rs.forEach(r=>(MULTI.has(d)?r[d]:[r[d]]).forEach(v=>{if(v in o)o[v]++}));return o};
+const pc=(v,t)=>t?Math.round(v/t*100):0;
+function toggle(d,v){const s=F[d]||(F[d]=new Set());s.has(v)?s.delete(v):s.add(v);if(!s.size)delete F[d];render()}
+function clearDim(d){delete F[d];render()}
+
+const tip=$('tip');
+function showTip(e,html){tip.innerHTML=html;tip.style.opacity=1;const w=tip.offsetWidth;tip.style.left=Math.max(8,Math.min(e.clientX+14,innerWidth-w-8))+'px';tip.style.top=(e.clientY+16)+'px'}
+const hideTip=()=>{tip.style.opacity=0};
+document.addEventListener('mousemove',e=>{const t=e.target.closest('[data-tip]');t?showTip(e,t.dataset.tip):hideTip()});
+document.addEventListener('click',e=>{const b=e.target.closest('[data-d]');if(b&&b.tagName!=='INPUT'){toggle(b.dataset.d,b.dataset.v);hideTip()}});
+document.addEventListener('touchstart',e=>{const t=e.target.closest('[data-tip]');if(t){showTip(e.touches[0],t.dataset.tip);setTimeout(hideTip,1600)}},{passive:true});
+
+function bars(id,d){
+  const rs=rows(d),c=count(rs,d),tot=rs.length,max=Math.max(1,...Object.values(c)),sel=F[d];
+  $(id).innerHTML=ORD[d].map(k=>{
+    const v=c[k],cls=sel?(sel.has(k)?'sel':'dim'):'';
+    return `<button class="row ${cls}" data-d="${d}" data-v="${esc(k)}" aria-pressed="${sel&&sel.has(k)?'true':'false'}" data-tip="<b>${esc(k)}</b>${v} of ${tot} students (${pc(v,tot)}%)"><span class="name">${esc(k)}</span><span class="track"><span class="fill" style="display:block;width:${v/max*100}%"></span></span><span class="val">${v}<i>${pc(v,tot)}%</i></span></button>`}).join('');
+}
+const UC=['#4e79a7','#a0cbe8','#bab0ac','#ffbe7d','#f28e2b'];
+function donut(){
+  const d='use',rs=rows(d),c=count(rs,d),tot=rs.length,sel=F[d],el=$('c-use');
+  if(!tot){el.innerHTML='<div class="empty">No responses match the filters.</div>';return}
+  let cum=0;const R=15.9155;
+  const arcs=ORD[d].map((k,i)=>{const p=c[k]/tot*100;const o=25-cum;cum+=p;if(!c[k])return'';
+    const cls=sel&&!sel.has(k)?'slice dim':'slice';
+    return `<circle class="${cls}" tabindex="0" role="button" aria-label="${esc(k)} ${c[k]}" data-d="${d}" data-v="${esc(k)}" data-tip="<b>${esc(k)}</b>${c[k]} of ${tot} students (${pc(c[k],tot)}%)" cx="21" cy="21" r="${R}" stroke="${UC[i]}" stroke-width="${sel&&sel.has(k)?7.5:6}" stroke-dasharray="${p} ${100-p}" stroke-dashoffset="${o}"/>`}).join('');
+  const yes=c["Definitely yes"]+c["Probably yes"];
+  el.innerHTML=`<svg viewBox="0 0 42 42" role="img" aria-label="Would use a vending machine"><circle cx="21" cy="21" r="${R}" fill="none" stroke="var(--track)" stroke-width="6"/>${arcs}<text x="21" y="21.5" text-anchor="middle" font-size="7.5" font-weight="700" fill="var(--ink)">${pc(yes,tot)}%</text><text x="21" y="27" text-anchor="middle" font-size="2.9" fill="var(--muted)">say yes</text></svg><div class="dl">${ORD[d].map((k,i)=>`<button class="${sel?(sel.has(k)?'sel':'dim'):''}" data-d="${d}" data-v="${esc(k)}"><i style="background:${UC[i]}"></i><span>${esc(k)}</span><span>${c[k]}</span></button>`).join('')}</div>`;
+}
+function stacks(){
+  const d='wait',rs=rows(d),sel=F[d],K=ORD.skip;
+  $('lg-ws').innerHTML=K.map((k,i)=>`<span><i style="background:var(--bar${i?i+1:''})"></i>${k}</span>`).join('');
+  $('c-ws').innerHTML=ORD.wait.map(w=>{
+    const g=rs.filter(r=>r.wait===w),t=g.length,cls=sel?(sel.has(w)?'sel':'dim'):'';
+    const segs=K.map((k,i)=>{const n=g.filter(r=>r.skip===k).length;return n?`<span class="seg k${i}" style="flex:${n}" data-tip="<b>${esc(w)} · ${k}</b>${n} of ${t} students (${pc(n,t)}%)">${pc(n,t)>=12?pc(n,t)+'%':''}</span>`:''}).join('');
+    return `<button class="row srow ${cls}" data-d="${d}" data-v="${esc(w)}" aria-pressed="${sel&&sel.has(w)?'true':'false'}"><span class="name">${esc(w)}</span><span class="stack">${t?segs:'<span class="seg k2" style="flex:1"></span>'}</span><span class="val">${t}</span></button>`}).join('');
+}
+function kpis(){
+  const rs=rows(null),t=rs.length,n=(f)=>rs.filter(f).length;
+  const yes=n(r=>r.use.endsWith('yes')),slow=n(r=>r.wait==='5–10 minutes'||r.wait==='More than 10 minutes'),skip=n(r=>r.skip!=='Never'),mid=n(r=>r.spend==='₹10–₹15'),daily=n(r=>r.freq==='Every day');
+  const k=[['Responses',t,'of '+ROWS.length+' total'],['Would use machine',pc(yes,t)+'%',yes+' students'],['Wait 5+ minutes',pc(slow,t)+'%',slow+' students'],['Skipped for queue',pc(skip,t)+'%',skip+' students'],['Spend ₹10–₹15',pc(mid,t)+'%',mid+' students'],['Buy every day',pc(daily,t)+'%',daily+' students']];
+  $('kpis').innerHTML=k.map(([l,v,s])=>`<div class="kpi"><div class="l">${l}</div><div class="v">${v}</div><div class="d">${s}</div></div>`).join('');
+}
+function pane(){
+  const el=$('pane');
+  el.innerHTML=PANE.map(d=>{const c=count(rows(d),d),sel=F[d];
+    return `<div><h3>${PANE_TITLE[d]}</h3>${ORD[d].map(k=>`<label class="fi ${sel&&!sel.has(k)?'off':''}"><input type="checkbox" data-d="${d}" data-v="${esc(k)}" ${sel&&sel.has(k)?'checked':''}><span>${esc(k)}</span><span class="n">${c[k]}</span></label>`).join('')}</div>`}).join('');
+}
+function chips(){
+  const parts=Object.entries(F).map(([d,s])=>`<button class="chip" data-clear="${d}" aria-label="Remove ${LABEL[d]} filter"><span>${LABEL[d]}: <b>${esc([...s].join(', '))}</b></span><span class="x">×</span></button>`);
+  $('chips').innerHTML=parts.length?parts.join(''):'<span class="hint">No filters applied. Click a bar or tick a box in the filter pane to start.</span>';
+}
+document.addEventListener('click',e=>{const c=e.target.closest('[data-clear]');if(c)clearDim(c.dataset.clear)});
+function table(){
+  const rs=rows(null);$('h-data').textContent=rs.length+' of '+ROWS.length+' rows';
+  const cols=[['id','#'],['year','Year'],['age','Age'],['drink','Drinks coffee'],['freq','Buys'],['wait','Queue wait'],['skip','Skipped'],['spend','Spend'],['use','Would use'],['where','Location'],['matter','Priority'],['bev','Beverages'],['conc','Concerns']];
+  $('tbl').innerHTML='<thead><tr>'+cols.map(c=>`<th>${c[1]}</th>`).join('')+'</tr></thead><tbody>'+rs.map(r=>'<tr>'+cols.map(([k])=>`<td>${esc(Array.isArray(r[k])?r[k].join(', '):r[k])}</td>`).join('')+'</tr>').join('')+'</tbody>';
+}
+function render(){
+  const tot=rows(null).length;
+  $('sub').textContent=tot+' of '+ROWS.length+' students shown';
+  kpis();donut();stacks();
+  ['wait','skip','where','conc','bev','matter','spend','freq','year'].forEach(d=>bars('c-'+d,d));
+  ['wait','skip','where','use'].forEach(d=>{const h=$('h-'+d);if(h)h.textContent=F[d]?'Filtered':''});
+  pane();chips();table();
+}
+$('pane').addEventListener('change',e=>{const i=e.target.closest('input[data-d]');if(i)toggle(i.dataset.d,i.dataset.v)});
+$('reset').onclick=()=>{for(const k in F)delete F[k];render()};
+$('tp').onclick=()=>{const p=$('pane'),o=p.dataset.open!=='true';p.dataset.open=o;$('tp').setAttribute('aria-expanded',o)};
+function tab(which){const d=which==='data';$('dash').hidden=d;$('data').hidden=!d;$('t-dash').setAttribute('aria-selected',!d);$('t-data').setAttribute('aria-selected',d)}
+$('t-dash').onclick=()=>tab('dash');$('t-data').onclick=()=>tab('data');
+render();
+</script>
+
+</body></html>
